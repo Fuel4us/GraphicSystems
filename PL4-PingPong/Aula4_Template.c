@@ -77,7 +77,7 @@ void inicia_jogo()
 {
 
   modelo.servico=(modelo.servico==2) ? 1 : 2;
-  
+
   modelo.jogador1.x=LINHA_SERVICO+LARGURA_RAQUETES*.5;
   modelo.jogador2.x=LARGURA_CAMPO-(LINHA_SERVICO+LARGURA_RAQUETES*.5);
   modelo.jogador1.y=modelo.jogador2.y=ALTURA_CAMPO*.5;
@@ -110,11 +110,11 @@ void Init(void)
   estado.menuActivo=GL_FALSE;
   estado.delayMovimento=DELAY_MOVIMENTO;
   estado.delayTeclas=DELAY_TECLAS;
-  
+
   estado.teclas.a=estado.teclas.q=estado.teclas.l=estado.teclas.p=GL_FALSE;
 
   inicia_jogo();
-    
+
   glClearColor(0.0, 0.0, 0.0, 0.0);
 
   glEnable(GL_POINT_SMOOTH);
@@ -137,14 +137,14 @@ void Reshape(int width, int height)
   // define parte da janela a ser utilizada pelo OpenGL
 
   glViewport(0, 0, (GLint) width, (GLint) height);
-  
+
 
   // Matriz Projeccao
   // Matriz onde se define como o mundo e apresentado na janela
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  // gluOrtho2D(left,right,bottom,top); 
+  // gluOrtho2D(left,right,bottom,top);
   // projeccao ortogonal 2D, com profundidade (Z) entre -1 e 1
   gluOrtho2D(0, LARGURA_CAMPO, 0, ALTURA_CAMPO);
 
@@ -158,7 +158,7 @@ void Reshape(int width, int height)
 void strokeString(char *str,double x, double y, double z, double s)
 {
 	int i,n;
-	
+
 	n = (int)strlen(str);
 	glPushMatrix();
 	glColor3d(0.0, 0.0, 0.0);
@@ -174,7 +174,7 @@ void strokeString(char *str,double x, double y, double z, double s)
 void bitmapString(char *str, double x, double y)
 {
 	int i,n;
-  
+
   // fonte pode ser:
   // GLUT_BITMAP_8_BY_13
   // GLUT_BITMAP_9_BY_15
@@ -199,7 +199,7 @@ void bitmapString(char *str, double x, double y)
 void bitmapCenterString(char *str, double x, double y)
 {
 	int i,n;
-  
+
 	n = (int)strlen(str);
 	glRasterPos2d(x-glutBitmapLength(GLUT_BITMAP_HELVETICA_18,(const unsigned char *)str)*0.5,y);
 	for (i=0;i<n;i++)
@@ -210,10 +210,10 @@ void bitmapCenterString(char *str, double x, double y)
 void desenha_campo(int p1, int p2)
 {
   char str[255];
- 
+
   glLineWidth(3);
   glLineStipple(2,0xFF00);
-  
+
   glEnable(GL_LINE_STIPPLE);
   glBegin(GL_LINES);
     glColor3f(1.0f ,1.0f ,1.0f);
@@ -285,7 +285,7 @@ void Draw(void)
       bitmapCenterString("Jogo Parado, use o menu para continuar", LARGURA_CAMPO*.5,ALTURA_CAMPO*.5);
   }
 
-  
+
   glFlush();
   if (estado.doubleBuffer)
     glutSwapBuffers();
@@ -298,22 +298,50 @@ void Draw(void)
 void Timer(int value)
 {
   glutTimerFunc(estado.delayMovimento, Timer, 0);
-  // ... accoes do temporizador ... 
-  
+  // ... accoes do temporizador ...
+
   if(estado.menuActivo || modelo.parado) // sair em caso de o jogo estar parado ou menu estar activo
     return;
 
   // movimenta bola
+  modelo.bola.x += modelo.bola.velocidade * cos(modelo.bola.direccao);
+  modelo.bola.y += modelo.bola.velocidade * sin(modelo.bola.direccao);
 
   // testa fim de ponto
+  if (modelo.bola.x + modelo.bola.tamanho < 0) {
+    modelo.jogador2.pontuacao++;
+    inicia_jogo();
+  }
+
+  if (modelo.bola.x + modelo.bola.tamanho > LARGURA_CAMPO) {
+    modelo.jogador1.pontuacao++;
+    inicia_jogo();
+  }
 
   // testa colisão paredes
-  
+  if (modelo.bola.y + modelo.bola.tamanho >= ALTURA_CAMPO || modelo.bola.y - modelo.bola.tamanho/2 <= 0) {
+    modelo.bola.direccao = -modelo.bola.direccao;
+  }
+
   // testa colisão raquete 1
+  if (modelo.bola.x < modelo.jogador1.x + LARGURA_RAQUETES/2 && modelo.bola.x > modelo.jogador1.x - LARGURA_RAQUETES/2
+        && modelo.bola.y < modelo.jogador1.y + ALTURA_RAQUETES/2 && modelo.bola.y > modelo.jogador1.y - ALTURA_RAQUETES/2) {
+        modelo.bola.direccao = modelo.bola.direccao + 180;
+        modelo.bola.x += modelo.bola.velocidade * cos(modelo.bola.direccao);
+        modelo.bola.y += modelo.bola.velocidade * sin(modelo.bola.direccao);
+    }
 
   // testa colisão raquete 2
+  if (modelo.bola.x < modelo.jogador2.x + LARGURA_RAQUETES/2 &&
+      modelo.bola.x > modelo.jogador2.x - LARGURA_RAQUETES/2 &&
+      modelo.bola.y < modelo.jogador2.y + ALTURA_RAQUETES/2 &&
+      modelo.bola.y > modelo.jogador2.y - ALTURA_RAQUETES/2) {
+        modelo.bola.direccao = modelo.bola.direccao + 180;
+        modelo.bola.x += modelo.bola.velocidade * cos(modelo.bola.direccao);
+        modelo.bola.y += modelo.bola.velocidade * sin(modelo.bola.direccao);
+    }
 
-  // redesenhar o ecra 
+  // redesenhar o ecra
   glutPostRedisplay();
 }
 
@@ -321,25 +349,43 @@ void Timer(int value)
 void TimerTeclas(int value)
 {
   glutTimerFunc(estado.delayTeclas, TimerTeclas, 0);
-  // ... accoes das teclas ... 
+  // ... accoes das teclas ...
 
   if(estado.menuActivo || modelo.parado)
     return;
 
   if(estado.teclas.a /*&& condicao*/)
   {
+    modelo.jogador1.y -= VELOCIDADE_RAQUETES;
+    if(modelo.jogador1.y < ALTURA_RAQUETES/2.0) {
+      modelo.jogador1.y = ALTURA_RAQUETES/2.0;
+    }
   }
   if(estado.teclas.q /*&& condicao*/)
   {
+    modelo.jogador1.y += VELOCIDADE_RAQUETES;
+		if (modelo.jogador1.y > ALTURA_CAMPO - ALTURA_RAQUETES / 2.0) {
+			modelo.jogador1.y = ALTURA_CAMPO - ALTURA_RAQUETES / 2.0;
+		}
   }
   if(estado.teclas.l /*&& condicao*/)
   {
+    modelo.jogador2.y -= VELOCIDADE_RAQUETES;
+		if (modelo.jogador2.y < ALTURA_RAQUETES / 2.0)
+		{
+			modelo.jogador2.y = ALTURA_RAQUETES / 2.0;
+		}
   }
   if(estado.teclas.p /*&& condicao*/)
   {
+    modelo.jogador2.y += VELOCIDADE_RAQUETES;
+		if (modelo.jogador2.y > ALTURA_CAMPO - ALTURA_RAQUETES / 2.0)
+		{
+			modelo.jogador2.y = ALTURA_CAMPO - ALTURA_RAQUETES / 2.0;
+		}
   }
 
-  // ´não necessita redesenhar o ecra, é feito no Timer de animação 
+  // ´não necessita redesenhar o ecra, é feito no Timer de animação
 }
 
 void imprime_ajuda(void)
@@ -365,7 +411,7 @@ void Key(unsigned char key, int x, int y)
   switch (key) {
     case 27:
       exit(0);
-    // ... accoes sobre outras teclas ... 
+    // ... accoes sobre outras teclas ...
 
     case 'h' :
     case 'H' :
@@ -375,19 +421,19 @@ void Key(unsigned char key, int x, int y)
     case 'I' :
                 inicia_jogo();
             break;
-    case 'Q' : 
+    case 'Q' :
     case 'q' : estado.teclas.q=GL_TRUE;
-           break; 
-    case 'A' : 
+           break;
+    case 'A' :
     case 'a' : estado.teclas.a=GL_TRUE;
            break;
-    case 'P' : 
+    case 'P' :
     case 'p' : estado.teclas.p=GL_TRUE;
            break;
-    case 'L' : 
+    case 'L' :
     case 'l' : estado.teclas.l=GL_TRUE;
            break;
-    case 'D' : 
+    case 'D' :
     case 'd' : estado.debug=!estado.debug;
                if(estado.menuActivo || modelo.parado)
                  glutPostRedisplay();
@@ -406,18 +452,18 @@ void Key(unsigned char key, int x, int y)
 void KeyUp(unsigned char key, int x, int y)
 {
   switch (key) {
-    // ... accoes sobre largar teclas ... 
+    // ... accoes sobre largar teclas ...
 
-    case 'Q' : 
+    case 'Q' :
     case 'q' : estado.teclas.q=GL_FALSE;
-           break; 
-    case 'A' : 
+           break;
+    case 'A' :
     case 'a' : estado.teclas.a=GL_FALSE;
            break;
-    case 'P' : 
+    case 'P' :
     case 'p' : estado.teclas.p=GL_FALSE;
            break;
-    case 'L' : 
+    case 'L' :
     case 'l' : estado.teclas.l=GL_FALSE;
            break;
 
@@ -431,7 +477,7 @@ void KeyUp(unsigned char key, int x, int y)
 
 /*void SpecialKey(int key, int x, int y)
 {
-  // ... accoes sobre outras teclas especiais ... 
+  // ... accoes sobre outras teclas especiais ...
   //    GLUT_KEY_F1 ... GLUT_KEY_F12
   //    GLUT_KEY_UP
   //    GLUT_KEY_DOWN
@@ -441,11 +487,11 @@ void KeyUp(unsigned char key, int x, int y)
   //    GLUT_KEY_PAGE_DOWN
   //    GLUT_KEY_HOME
   //    GLUT_KEY_END
-  //    GLUT_KEY_INSERT 
+  //    GLUT_KEY_INSERT
 
   switch (key) {
 
-  // redesenhar o ecra 
+  // redesenhar o ecra
   //glutPostRedisplay();
   }
 
@@ -466,19 +512,19 @@ void KeyUp(unsigned char key, int x, int y)
 
 void MenuStatus(int status, int x, int y)
 {
-  /* status => GLUT_MENU_IN_USE, GLUT_MENU_NOT_IN_USE 
+  /* status => GLUT_MENU_IN_USE, GLUT_MENU_NOT_IN_USE
      x,y    => coordenadas do ponteiro quando se entra no menu
   */
 
-  if(status==GLUT_MENU_IN_USE) 
+  if(status==GLUT_MENU_IN_USE)
   {
     estado.menuActivo=GL_TRUE;
-  } 
+  }
   else
   {
     estado.menuActivo=GL_FALSE;
 
-  } 
+  }
 
   if(estado.debug)
     printf("MenuStatus status:%d coord:%d %d\n",status,x,y);
@@ -554,14 +600,14 @@ void cria_menu()
   // glutSetMenu(id)          - torna actual o menu com o id
   //
   // glutAddMenuEntry("texto", valor) -  adiciona uma entrada ao menu actual
-  // glutChangeToMenuEntry(item, "novo texto", novo_valor) 
+  // glutChangeToMenuEntry(item, "novo texto", novo_valor)
   //                                  -  altera a entrada item(1,2,3..) do menu actual
   // glutAddSubMenu("texto", id)      -  adiciona o submenu id ao menu actual
-  // glutChangeToSubMenu(item, "novo texto", novo_id) 
+  // glutChangeToSubMenu(item, "novo texto", novo_id)
   //                                  -  altera a entrada submenu item(1,2,3..) do menu actual
   // glutRemoveMenuItem(item)         - apaga a entrada item(1,2,3...)
   //
-  // glutAttachMenu(botao)            - associa o menu actual ao botao 
+  // glutAttachMenu(botao)            - associa o menu actual ao botao
   // glutDetachMenu(botao)            - desassocia o menu associado ao botao GLUT_RIGHT_BUTTON
   // botao = GLUT_LEFT_BUTTON, GLUT_MIDDLE_BUTTON ou GLUT_RIGHT_BUTTON
 
@@ -601,7 +647,7 @@ void cria_menu()
 int main(int argc, char **argv)
 {
   estado.doubleBuffer=GL_TRUE;
-  
+
   glutInit(&argc, argv);
   glutInitWindowPosition(0, 0);
   glutInitWindowSize(LARGURA_CAMPO, ALTURA_CAMPO);
@@ -614,7 +660,7 @@ int main(int argc, char **argv)
   imprime_ajuda();
 
 // Registar callbacks do GLUT
-  
+
   // callbacks de janelas/desenho
   glutReshapeFunc(Reshape);
   glutDisplayFunc(Draw);
@@ -632,9 +678,9 @@ int main(int argc, char **argv)
   //Menus
   cria_menu();
   glutMenuStatusFunc(MenuStatus);
-  
-  // COMECAR...
-  glutMainLoop(); 
 
-  return 0; 
+  // COMECAR...
+  glutMainLoop();
+
+  return 0;
 }
